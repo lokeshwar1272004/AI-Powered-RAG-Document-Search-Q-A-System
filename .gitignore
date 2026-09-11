@@ -1,0 +1,8 @@
+venv/
+__pycach__/
+*.pyc
+.env
+fassi_store/
+logs/
+.DS_Store
+data/
