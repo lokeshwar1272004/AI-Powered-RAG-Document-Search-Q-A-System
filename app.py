@@ -1,9 +1,17 @@
 import requests
 import streamlit as st
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 from src.config import settings
 
-API_BASE_URL=f"http://localhost:{settings.api_port}"
+API_BASE_URL = os.getenv(
+    "API_BASE_URL",
+    f"http://localhost:{settings.api_port}"
+)
 st.set_page_config(page_title="RAG Document Search", page_icon="📄")
 
 
@@ -14,14 +22,37 @@ with st.sidebar:
         if st.button("Upload & Index"):
             with st.spinner("Uploading and processing..."):
                 files={"file":(uploded_file.name,uploded_file.getvalue())}
+                # try:
+                #     response=requests.post(f"{API_BASE_URL}/upload",files=files)
+                #     response.raise_for_status()
+                #     result=response.json()
+                #     st.success(f"Index'{result['filename']}' '({result['chunk_count']} chunks)'")
+
+                # except requests.exceptions.RequestException as e:
+                #     st.error(f"upload file:{e}")
+
+                
                 try:
-                    response=requests.post(f"{API_BASE_URL}/upload",files=files)
-                    response.raise_for_status()
-                    result=response.json()
-                    st.success(f"Index'{result['filename']}' '({result['chunk_count']} chunks)'")
+                    response = requests.post(
+                        f"{API_BASE_URL}/upload",
+                        files=files
+                    )
+
+                    if response.status_code == 409:
+                        st.warning("This document has already been uploaded.")
+
+                    else:
+                        response.raise_for_status()
+                        result = response.json()
+
+                        st.success(
+                            f"Indexed '{result['filename']}' "
+                            f"({result['chunk_count']} chunks)"
+                        )
 
                 except requests.exceptions.RequestException as e:
-                    st.error(f"upload file:{e}")
+                    st.error(f"Upload failed: {e}")
+
 
     st.divider()
     st.header("Index document")

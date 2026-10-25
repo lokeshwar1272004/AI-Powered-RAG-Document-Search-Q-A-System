@@ -28,7 +28,12 @@ class RAGSearch:
         except VectorStoreError:
             logger.info("No existing vector store found — building a new one.")
             documents=load_all_documents(settings.data_dir)
-            self.vectorstore.build_from_document(documents)
+            if documents:
+                self.vectorstore.build_from_document(documents)
+            else:
+                logger.warning(
+                "No documents found to build the FAISS index."
+                )
 
         if not settings.groq_api_key:
              raise SerachError("GROQ_API_KEY is not set — check your .env file.")
@@ -36,6 +41,7 @@ class RAGSearch:
         self.llm=ChatGroq(
             groq_api_key=settings.groq_api_key,
             model_name=self.llm_model
+          
         )
         logger.info(f"Groq LLM initialized: {self.llm_model}")
 

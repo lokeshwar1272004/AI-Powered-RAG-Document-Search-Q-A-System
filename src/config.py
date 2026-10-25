@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     #__LLM
     groq_api_key : str
-    llm_model :str =  "qwen/qwen3.6-27b"
+    llm_model :str =  "qwen/qwen3.8-27b"
 
     #--Embeddings
     embedding_model : str="all-MiniLM-L6-v2"
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     api_port:int=8000
 
     #--DataBase
-    postgres_host:str="localhost"
+    postgres_host:str="postgres"
     postgres_port:int=5432
     postgres_db:str="rag_doc_search"
     postgres_user:str="postgres"

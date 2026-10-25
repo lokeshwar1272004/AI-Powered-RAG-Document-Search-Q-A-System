@@ -1,3 +1,6 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+sentence-transformers
 fastapi
 uvicorn
 python-dotenv
@@ -7,7 +10,7 @@ langchain
 langchain-community
 langchain-text-splitters
 langchain-groq
-sentence-transformers
+
 faiss-cpu
 numpy
 pypdf

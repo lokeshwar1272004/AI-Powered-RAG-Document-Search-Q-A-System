@@ -70,7 +70,7 @@ class FaissVectorStore:
 
     def save(self):
         faiss_path=os.path.join(self.persist_dir,"faiss.index")
-        mata_path=os.path.join(self.persist_dir,"matadata.pkl")
+        mata_path=os.path.join(self.persist_dir,"metadata.pkl")
         try:
             faiss.write_index(self.index,faiss_path)
             with open(mata_path,"wb") as f:

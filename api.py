@@ -1,6 +1,8 @@
 import os
 from contextlib import asynccontextmanager
 from typing import List,Any
+import uuid
+from pathlib import Path
 
 
 import numpy as np
@@ -69,26 +71,48 @@ def get_documents():
     return [DocumentOut(id=d.id,filename=d.filename,status=d.status,chunk_count=d.chunk_count) for d in docs]
 
 
-@app.post("/update",response_model=DocumentOut)
-def update_document(file:UploadFile=File(...)):
-    ext=os.path.splitext(file.filename)[1].lower()
+@app.post("/upload", response_model=DocumentOut)
+def update_document(file: UploadFile = File(...)):
+    filename = Path(file.filename).name
+    ext = os.path.splitext(filename)[1].lower()
 
-    if ext not in (".pdf",".txt"):
-        raise HTTPException(status_code=400, detail="Only .pdf and .txt files are supported.")
+    if ext not in (".pdf", ".txt"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only .pdf and .txt files are supported."
+        )
 
-    os.makedirs(settings.data_dir,exist_ok=True)
-    save_path=os.path.join(settings.data_dir,file.filename)
-    with open(save_path,'wb') as f:
+    # Check for duplicate filenames
+    existing_documents = list_documents()
+
+    if any(doc.filename == filename for doc in existing_documents):
+        raise HTTPException(
+            status_code=409,
+            detail=f"'{filename}' has already been uploaded."
+        )
+
+    os.makedirs(settings.data_dir, exist_ok=True)
+    save_path = os.path.join(settings.data_dir, filename)
+
+    with open(save_path, "wb") as f:
         f.write(file.file.read())
-    doc_id=add_docuement(file.filename)
 
+    doc_id = add_docuement(filename)
 
     try:
         loaded=PyPDFLoader(save_path).load() if ext==".pdf" else TextLoader(save_path).load()
         pipeline=EmbeddingPipeline()
         chunks=pipeline.chunk_documents(loaded)
         embeddings=pipeline.embed_chunks(chunks)
-        metadatas=[{"text":c.page_content} for c in chunks]
+        # metadatas=[{"text":c.page_content} for c in chunks]
+        metadatas = [
+                        {
+                            "text": chunk.page_content,
+                            "filename": file.filename,
+                            "document_id": doc_id,
+                        }
+                        for chunk in chunks
+                    ]
 
         rag_search.vectorstore.add_embeddings(np.array(embeddings).astype("float32"),metadatas=metadatas)
         rag_search.vectorstore.save()
