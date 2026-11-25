@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 import numpy as np
-from fastapi import HTTPException,FastAPI,UploadFile,File
+from fastapi import HTTPException,FastAPI,UploadFile,File,Request
 from pydantic import BaseModel
 from langchain_community.document_loaders import PyPDFLoader,TextLoader
 
@@ -26,10 +26,10 @@ rag_search:RAGSearch=None
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
-    global rag_search
+  
     logger.info("Starting up: initializing database and RAG pipeline...")
     init_db()
-    rag_search=RAGSearch()
+    app.state.rag_search=RAGSearch()
     logger.info("Startup complete.")
     yield
     logger.info("Shutting down.")
@@ -56,14 +56,27 @@ def health():
     return {"status":"ok"}
 
 
-@app.post("/query",response_model=QueryResponse)
-def query(request:QueryRequest):
+@app.post("/query", response_model=QueryResponse)
+def query(
+    request: Request,
+    payload: QueryRequest
+):
     try:
-        answer=rag_search.search_and_summarize(request.query,request.top_k)
+        rag_search = request.app.state.rag_search
+
+        answer = rag_search.search_and_summarize(
+            payload.query,
+            payload.top_k
+        )
+
         return QueryResponse(answer=answer)
+
     except SerachError as e:
         logger.error(f"Search failed: {e}")
-        raise HTTPException(status_code=500,detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to process your query."
+        )
 
 @app.get("/documents",response_model=List[DocumentOut])
 def get_documents():
